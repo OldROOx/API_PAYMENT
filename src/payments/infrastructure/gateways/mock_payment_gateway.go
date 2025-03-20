@@ -1,7 +1,7 @@
 package gateways
 
 import (
-	"app.payment/src/payments/application"
+	"app.payment/src/payments/application" // Importa desde aplicación
 	"app.payment/src/payments/domain/entities"
 	"errors"
 	"github.com/google/uuid"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// MockPaymentGateway simula un procesador de pagos para pruebas
+// MockPaymentGateway implementa la interfaz PaymentGateway de la aplicación
 type MockPaymentGateway struct {
 	failureRate float64
 }

@@ -27,14 +27,13 @@ func NewProcessPaymentUseCase(
 }
 
 func (uc *ProcessPaymentUseCase) Execute(orderID uint, amount float64, method string) (*entities.Payment, error) {
-	// Check if payment already exists for this order
+	// Verificar si ya existe el pago
 	existingPayment, err := uc.paymentRepo.FindByOrderID(orderID)
 	if err == nil && existingPayment != nil {
-		// Payment already exists
 		return existingPayment, errors.New("payment already exists for this order")
 	}
 
-	// Create new payment
+	// Crear nuevo pago
 	paymentID := uuid.New().String()
 	payment := &entities.Payment{
 		ID:        paymentID,
@@ -46,18 +45,18 @@ func (uc *ProcessPaymentUseCase) Execute(orderID uint, amount float64, method st
 		UpdatedAt: time.Now(),
 	}
 
-	// Save to repository
+	// Guardar en repositorio
 	if err := uc.paymentRepo.Save(payment); err != nil {
 		return nil, err
 	}
 
-	// Process payment with gateway
+	// Procesar pago con el gateway
 	gatewayResponse, err := uc.paymentGateway.ProcessPayment(payment)
 	if err != nil {
-		// Update payment status to failed
+		// Actualizar estado a fallido
 		uc.paymentRepo.UpdatePaymentFailed(paymentID, err.Error())
 
-		// Publish payment.failed event
+		// Publicar evento payment.failed
 		failedEvent := entities.Event{
 			ID:        uuid.New().String(),
 			Type:      "payment.failed",
@@ -73,17 +72,17 @@ func (uc *ProcessPaymentUseCase) Execute(orderID uint, amount float64, method st
 		return payment, err
 	}
 
-	// Update payment with transaction ID
+	// Actualizar pago con ID de transacción
 	err = uc.paymentRepo.UpdateStatus(paymentID, entities.PaymentStatusCompleted, gatewayResponse.TransactionID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Update payment object
+	// Actualizar objeto de pago
 	payment.Status = entities.PaymentStatusCompleted
 	payment.TransactionID = gatewayResponse.TransactionID
 
-	// Publish payment.completed event
+	// Publicar evento payment.completed
 	completedEvent := entities.Event{
 		ID:        uuid.New().String(),
 		Type:      "payment.completed",
